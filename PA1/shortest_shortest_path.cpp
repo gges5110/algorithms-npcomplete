@@ -22,10 +22,24 @@ lengths of their shortest shortest paths in the box below.
 #include <fstream>
 #include <vector>
 #include <limits>
+#include <queue>
 
+using std::queue;
+using std::priority_queue;
 using std::vector;
 using std::ifstream;
 using std::numeric_limits;
+
+class compareDist {
+  const vector<int>& _dist;
+public:
+  compareDist(const vector<int>& dist): _dist(dist) {
+  }
+
+  bool operator()(int u, int v) {
+    return _dist[u] < _dist[v];
+  }
+};
 
 int negative_cycle(const vector<vector<int>> &adj, const vector<vector<int>> &cost) {
   // write your code here
@@ -33,10 +47,11 @@ int negative_cycle(const vector<vector<int>> &adj, const vector<vector<int>> &co
   vector<int> dist(n, numeric_limits<int>::max());
   dist[0] = 0;
 
-  for (int u = 1; u < n; ++u) {
+  for (int u = 0; u < n; ++u) {
     for (int j = 0; j < adj[u].size(); ++j) {
       int v = adj[u][j], alt = dist[u] + cost[u][j];
-      if (alt < dist[v]) {
+      if (dist[u] != numeric_limits<int>::max() && alt < dist[v]) {
+        // std::cout << "relax" << std::endl;
         dist[v] = alt;
       }
     }
@@ -44,15 +59,41 @@ int negative_cycle(const vector<vector<int>> &adj, const vector<vector<int>> &co
 
   for (int u = 0; u < n; ++u) {
     for (int j = 0; j < adj[u].size(); ++j) {
-      int v = adj[u][j];
-      if (dist[u] + cost[u][j] < dist[v]) {
-        std::cout << u << ", " << v << std::endl;
+      int v = adj[u][j], alt = dist[u] + cost[u][j];
+      if (dist[u] != numeric_limits<int>::max() && alt < dist[v]) {
+        // std::cout << alt << ", " << dist[v] << std::endl;
+        // std::cout << u << ", " << v << std::endl;
         return 1;
       }
     }
   }
 
   return 0;
+}
+
+int distance(const vector<vector<int>> &adj, const vector<vector<int>> &cost, int s, int t) {
+  int n = adj.size();
+  vector<int> dist(n, numeric_limits<int>::max()); //, prev(n, -1); We don't need the path.
+  priority_queue<int, vector<int>, compareDist> unvisited{compareDist(dist)};
+
+  unvisited.push(s);
+  dist[s] = 0;
+
+  while (!unvisited.empty()) {
+    int u = unvisited.top();
+    unvisited.pop();
+
+    for (int j = 0; j < adj[u].size(); ++j) {
+      int v = adj[u][j];
+      int alt = dist[u] + cost[u][j];
+      if (alt < dist[v]) {
+        dist[v] = alt;
+        unvisited.push(v);
+      }
+    }
+  }
+  // std::cout << dist[t] << std::endl;
+  return dist[t] == numeric_limits<int>::max() ? -1 : dist[t];
 }
 
 int main(int argc, char *argv[]) {
@@ -75,7 +116,20 @@ int main(int argc, char *argv[]) {
         adj[x - 1].push_back(y - 1);
         cost[x - 1].push_back(w);
       }
-      std::cout << negative_cycle(adj, cost) << std::endl;
+      if (negative_cycle(adj, cost)) {
+        std::cout << "NULL" << std::endl;
+      } else {
+        int min = numeric_limits<int>::max();
+        for (int u = 0; u < n; ++u) {
+          for (int v = 0; v < n; ++v) {
+            if (u != v) {
+
+              min = std::min(distance(adj, cost, u, v), min);
+            }
+          }
+        }
+        std::cout << min << std::endl;
+      }
     } catch (ifstream::failure& e) {
       std::cerr << "Exception opening/reading file" << std::endl;
     }
