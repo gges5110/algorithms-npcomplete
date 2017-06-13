@@ -20,6 +20,7 @@ def printWithColor(color, string):
 
 def main():
     module = ""
+    timeout = 5
     # print 'Number of arguments:', len(sys.argv), 'arguments.'
     # print 'Argument List:', str(sys.argv)
     if len(sys.argv) != 2:
@@ -28,7 +29,7 @@ def main():
     else:
         module = "PA" + str(sys.argv[1])
 
-    print (module)
+    # print (module)
     # Get the file list in test directory
     f = []
     # test_folder = raw_input("test folder?")
@@ -38,7 +39,6 @@ def main():
             if input_filename[0:5] == 'input':
                 f.append(input_filename)
         break
-
     f.sort()
 
     if len(f) == 0:
@@ -46,28 +46,38 @@ def main():
         sys.exit(0)
 
     # TODO: compile code if executable is not there
-
     print ("")
-    print ("[==========] Running " + str(len(f)) + " test cases.")
+    print (printWithColor(bcolors.OKGREEN, "[==========] ") + str(len(f)) + " test cases.")
     passed = 0
     failed = []
     total_time = 0
 
+    exe_filename = ""
+    # Determine executable name.
+    for (dirpath, dirnames, filenames) in walk(module):
+        for filename in filenames:
+            if 'exe' in filename:
+                exe_filename = filename
+                break
+        break
+    # print(exe_filename)
+
     # For each pair of tests
-    for i in range(0, len(f), 2):
-        command = "./" + module + "/shortest_shortest_path.exe " + module + "/tests/" + f[i]
+    for i in range(0, len(f)):
+        command = "./" + module + "/" + exe_filename + " " + module + "/tests/" + f[i]
 
         test_name = "tests/" + f[i]
-        print (command)
+        # print (command)
         print (printWithColor(bcolors.OKGREEN, "[ RUN      ] ") + module + "/" + test_name)
 
         ts_start = time.time()
         p = subprocess.Popen(["exec " + command], shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         try:
-            p.wait(timeout=5)
+            p.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
             p.kill()
-            print("Timed out.")
+            print (printWithColor(bcolors.FAIL, "[  FAILED  ] ") + str(timeout) + " second time out. ")
+            failed.append(test_name)
 
         ts_total = time.time() - ts_start
         total_time = total_time + ts_total

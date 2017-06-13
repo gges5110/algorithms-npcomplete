@@ -41,11 +41,11 @@ public:
   }
 };
 
-int negative_cycle(const vector<vector<int>> &adj, const vector<vector<int>> &cost) {
+int negative_cycle(const vector<vector<int>> &adj, const vector<vector<int>> &cost, vector<int> &dist, int source) {
   // write your code here
   int n = adj.size();
-  vector<int> dist(n, numeric_limits<int>::max());
-  dist[0] = 0;
+  // vector<int> dist(n, numeric_limits<int>::max());
+  dist[source] = 0;
 
   for (int u = 0; u < n; ++u) {
     for (int j = 0; j < adj[u].size(); ++j) {
@@ -116,24 +116,27 @@ int main(int argc, char *argv[]) {
         adj[x - 1].push_back(y - 1);
         cost[x - 1].push_back(w);
       }
-      if (negative_cycle(adj, cost)) {
-        std::cout << "NULL" << std::endl;
-      } else {
-        int min = numeric_limits<int>::max();
-        for (int u = 0; u < n; ++u) {
+
+      int min = numeric_limits<int>::max();
+      for (int u = 0; u < n; ++u) {
+        vector<int> dist(n, numeric_limits<int>::max());
+        if (negative_cycle(adj, cost, dist, u)) {
+          std::cout << "NULL" << std::endl;
+          fs.close();
+          return 0;
+        } else {
           for (int v = 0; v < n; ++v) {
             if (u != v) {
-
-              min = std::min(distance(adj, cost, u, v), min);
+              min = std::min(dist[v], min);
             }
           }
         }
-        std::cout << min << std::endl;
       }
+      std::cout << min << std::endl;
+      fs.close();
     } catch (ifstream::failure& e) {
       std::cerr << "Exception opening/reading file" << std::endl;
     }
-    fs.close();
   }
   return 0;
 }
