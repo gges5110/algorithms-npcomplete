@@ -60,6 +60,9 @@ def main():
                 exe_filename = filename
                 break
         break
+    if exe_filename == "":
+        print ("No executables found. Please compile first.")
+        sys.exit(0)
     # print(exe_filename)
 
     # For each pair of tests
