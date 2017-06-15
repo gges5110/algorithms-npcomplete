@@ -26,17 +26,16 @@ up your algorithm?
 
 #include <iostream>
 #include <fstream>
+#include <bitset>
 #include <vector>
 #include <limits>
 
 #include <string>
 #include <cmath> /*sqrt, pow, floor*/
 #include <algorithm> /* std::next_permutation */
-#include <unordered_set>
 #include <unordered_map>
 
 using std::unordered_map;
-using std::unordered_set;
 using std::sqrt;
 using std::pow;
 using std::string;
@@ -59,11 +58,19 @@ double Eucledian_distance(Coordinate<double> p_1, Coordinate<double> p_2) {
   return sqrt(pow(p_1.x - p_2.x, 2) + pow(p_1.y - p_2.y, 2));
 }
 
+bool contains(int set, int i) {
+  return (1 << i) & set;
+}
+
+int erase(int set, int i) {
+  int ans = ~0 & (1 << i);
+  return (~ans) & set;
+}
+
 class Set_vertex {
 public:
-  int vertex;
-  unordered_set<int> set;
-  Set_vertex(int vertex, unordered_set<int> set): vertex(vertex), set(set) {}
+  int vertex, set;
+  Set_vertex(int vertex, int set): vertex(vertex), set(set) {}
   Set_vertex() {}
 
   bool operator==(const Set_vertex& that) const {
@@ -71,11 +78,7 @@ public:
   }
 
   void print() {
-    cout << "Print Set_vertex info: " << "vertex = " << vertex << ", set = ";
-    for (int i: set) {
-      cout << i << ", ";
-    }
-    cout << endl;
+    cout << "Print Set_vertex info: " << "vertex = " << vertex << ", set = " << set << endl;
   }
 };
 
@@ -85,22 +88,26 @@ public:
     using std::size_t;
     using std::hash;
 
-    unordered_set<int>::hasher fn = key.set.hash_function();
-
     // TODO: need to come up with a better hash function.
     // return (31 * key.vertex + fn(key.set));
     int sum = 0;
-    for (int i: key.set) {
-      sum += i;
+    for (int i = 0; i < 32; ++i) {
+      if (contains(key.set, i)) {
+        sum = sum | (1 << i);
+      }
+      // sum += i;
     }
-    return (31 * key.vertex + sum);
+    sum |= (1 << (key.vertex));
+    return sum;
+    // return (31 * key.vertex + sum);
   }
 };
 
 
 class Cost_parent {
 public:
-  double cost, parent;
+  double cost;
+  int parent;
   Cost_parent(double cost, int parent): cost(cost), parent(parent) {}
   Cost_parent() {
       // cost = -1;
@@ -133,35 +140,18 @@ private:
     }
   }
 
-  vector<int> complimentary(vector<int> set, int size) {
-    vector<int> answer;
-    for (int i = 1; i < size; ++i) {
-      if (std::find(set.begin(), set.end(), i) == set.end()) {
-        // i is not inside the set
-        answer.push_back(i);
-      }
-    }
-    return answer;
-  }
-
-  unordered_set<int> Vector_to_set(const vector<int>& v) const {
-    unordered_set<int> temp_set;
-    for (int i: v) {
-      temp_set.insert(i);
-    }
-    return temp_set;
-  }
-
-  vector<vector<int>> combinations(int k) {
-    vector<int> combinations;
-    vector<vector<int>> answer;
+  vector<int> combinations(int k) {
+    vector<int> combinations, answer;
     permutation(1, k, combinations, answer);
     return answer;
   }
 
-  void permutation(int offset, int k, vector<int> combinations, vector<vector<int>> &answer) {
+  void permutation(int offset, int k, vector<int> combinations, vector<int> &answer) {
     if (k == 0) {
-      vector<int> temp = combinations;
+      int temp = 0;
+      for (int i: combinations) {
+        temp += 1 << i;
+      }
       answer.push_back(temp);
       return;
     }
@@ -182,20 +172,24 @@ public:
     unordered_map<Set_vertex, Cost_parent, KeyHasher> map;
 
     for (int vertex = 1; vertex < node_size; ++vertex) {
-      unordered_set<int> temp_set;
-      Set_vertex setVertex(vertex, temp_set);
-      Cost_parent costParent(distance_matrix[0][vertex], 0);
+      Set_vertex setVertex(vertex, 0);
+      Cost_parent costParent(distance_matrix[vertex][0], 0);
       map.insert({setVertex, costParent});
     }
 
     unordered_map<Set_vertex, Cost_parent, KeyHasher> new_map;
     for (int set_size = 1; set_size < node_size - 1; ++set_size) {
-      vector<vector<int>> S = combinations(set_size);
-      for (vector<int> set: S) {
-        for (int k: complimentary(set, node_size)) {
-          Cost_parent min_costParent = getMinCost(k, Vector_to_set(set), map);
-          Set_vertex now(k, Vector_to_set(set));
-          new_map.insert({now, min_costParent});
+      vector<int> S = combinations(set_size);
+
+      for (int set: S) {
+        // cout << "set_size " << set_size << ", " << std::bitset<32>(set) << endl;
+        for (int k = 1; k < node_size; ++k) {
+          if (!contains(set, k)) {
+            // cout << "set_size = " << set_size << endl;
+            Cost_parent min_costParent = getMinCost(k, set, set_size, map);
+            Set_vertex min_setVertex(k, set);
+            new_map.insert({min_setVertex, min_costParent});
+          }
         }
       }
       map = new_map;
@@ -203,39 +197,29 @@ public:
     }
 
     // [0, {1, 2, 3}]
-    unordered_set<int> set;
-    for (int i = 1; i < node_size; ++i) {
-      set.insert(i);
-    }
-    Cost_parent min_costParent = getMinCost(0, set, map);
+    int set = ((~0) << 1) & (~((~0) << node_size));
+    Cost_parent min_costParent = getMinCost(0, set, node_size, map);
     cout << std::floor(min_costParent.cost) << endl;
   }
 
-  Cost_parent getMinCost(const int k, const unordered_set<int> &set, unordered_map<Set_vertex, Cost_parent, KeyHasher> &map) {
-    double min = numeric_limits<int>::max();
+  Cost_parent getMinCost(int k, int set, int set_size, unordered_map<Set_vertex, Cost_parent, KeyHasher> &map) {
     // Set_vertex min_setVertex;
-    Cost_parent min_costParent(min, -1);
-
-    // cout << "Calculating node " << k << endl;
-    unordered_set<int> temp_set = set;
-    for (int m: set) {
-      temp_set.erase(m);
-      Set_vertex temp_setVertex(m, temp_set);
-      Cost_parent temp_costParent = map[temp_setVertex];
-      double cost = temp_costParent.cost + distance_matrix[m][k];
-      if (cost < min) {
-        min = cost;
-        // min_setVertex = temp_setVertex;
-        min_costParent = temp_costParent;
+    double min = numeric_limits<double>::max();
+    int parent = -1;
+    // cout << "Calculating k = " << k << " with set = " << std::bitset<32>(set) << endl;
+    for (int m = 1; m < node_size; ++m) {
+      if (contains(set, m)) {
+        Cost_parent temp_costParent = map[Set_vertex(m, erase(set, m))];
+        double cost = temp_costParent.cost + distance_matrix[k][m];
+        if (cost < min) {
+          min = cost;
+          parent = m;
+        }
       }
-      temp_set.insert(m);
     }
-    min_costParent.cost = min;
-    // cout << "Min cost = " << min << endl;
-    return min_costParent;
+    return Cost_parent(min, parent);
   }
 };
-
 
 int main(int argc, char *argv[]) {
   if (argc != 2) {
