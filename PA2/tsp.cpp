@@ -89,13 +89,11 @@ public:
     using std::hash;
 
     // TODO: need to come up with a better hash function.
-    // return (31 * key.vertex + fn(key.set));
     int sum = 0;
     for (int i = 0; i < 32; ++i) {
       if (contains(key.set, i)) {
         sum = sum | (1 << i);
       }
-      // sum += i;
     }
     sum |= (1 << (key.vertex));
     return sum;
@@ -109,10 +107,7 @@ public:
   double cost;
   int parent;
   Cost_parent(double cost, int parent): cost(cost), parent(parent) {}
-  Cost_parent() {
-      // cost = -1;
-      // parent = -1;
-  }
+  Cost_parent() {}
   void print() {
     cout << "Print Cost_parent info: cost = " << cost << ", parent = " << parent << endl;
   }
@@ -179,6 +174,7 @@ public:
 
     unordered_map<Set_vertex, Cost_parent, KeyHasher> new_map;
     for (int set_size = 1; set_size < node_size - 1; ++set_size) {
+      cout << "set_size = " << set_size << endl;
       vector<int> S = combinations(set_size);
 
       for (int set: S) {
