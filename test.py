@@ -98,7 +98,7 @@ def main():
             else:
                 print (printWithColor(bcolors.FAIL, "Failure "))
                 print ("Expected: " + printWithColor(bcolors.OKGREEN, content[0].rstrip()))
-                print ("Actual:   " + printWithColor(bcolors.FAIL, str(line.rstrip())))
+                print ("Actual:   " + printWithColor(bcolors.FAIL, line.decode("utf-8")))
                 failed.append(test_name)
 
     print ("")
