@@ -23,6 +23,7 @@ rounded down to the nearest integer.
 
 #include <iostream>
 #include <fstream>
+#include <algorithm>
 #include <vector>
 #include <limits>
 #include <cmath> /*sqrt, pow, floor*/
@@ -38,59 +39,65 @@ using std::vector;
 using std::numeric_limits;
 
 template <typename T>
-class Coordinate {
+class City {
 public:
   T x, y;
-  Coordinate(T _x, T _y): x(_x), y(_y) {}
-  Coordinate() {}
+  int vertex;
+  City(T _x, T _y, int _vertex): x(_x), y(_y), vertex(_vertex) {}
+  City() {}
+
+  bool operator < (const City &that) {
+    return this->x < that.x;
+  }
 };
 
-double Eucledian_distance(Coordinate<double> p_1, Coordinate<double> p_2) {
+double Eucledian_distance(City<double> p_1, City<double> p_2) {
   return sqrt(pow(p_1.x - p_2.x, 2) + pow(p_1.y - p_2.y, 2));
 }
 
 class TSP {
 private:
   int _node_size;
-  vector<Coordinate<double>> _nodes;
-  vector<vector<double>> _dist;
-
-  void calculate_distances() {
-    _dist.resize(_nodes.size());
-    for (int i = 0; i < _node_size; ++i) {
-      _dist[i].resize(_nodes.size());
-    }
-
-    for (int i = 0; i < _node_size; ++i) {
-      _dist[i][i] = 0;
-      for (int j = i + 1; j < _node_size; ++j) {
-        double d = Eucledian_distance(_nodes[i], _nodes[j]);
-        _dist[i][j] = d;
-        _dist[j][i] = d;
-      }
-    }
-  }
+  vector<City<double>> _cities;
+  vector<vector<double>> _dist;  
 
 public:
-  TSP(const vector<Coordinate<double>>& nodes): _nodes(nodes) {
-    _node_size = _nodes.size();
-    calculate_distances();
+  TSP(const vector<City<double>>& nodes): _cities(nodes) {
+    _node_size = _cities.size();    
   }
 
   double minCost() {
     set<int> visited;    
     // 1. Start the tour at the first city.
-    int current_city = 0;
-    double sum = 0;
-    visited.insert(0);
+    int current_city, starting_city = 0;
+    double sum = 0;    
+
+    // Optimize
+    std::sort(_cities.begin(), _cities.end());
+    for (int i = 0; i < _node_size; ++i) {
+      if (_cities[i].vertex == 1) {
+        starting_city = i;
+        break;
+      }
+    }
+
+    visited.insert(starting_city);
+    current_city = starting_city;
+
     while (visited.size() < _node_size) {      
-      // 2. Repeatedly visit the closest city that the tour hasn't visited yet.
+      // 2. Repeatedly visit the closest city that the tour hasn't visited yet.      
       double min = numeric_limits<double>::max(), next_city = -1;
-      for (int u = _node_size - 1; u > 0; --u) {
-        if (visited.count(u) == 0 && _dist[current_city][u] <= min) {
-          min = _dist[current_city][u];
-          next_city = u;
-        }
+      
+      for (int u = 0; u < _node_size; ++u) {        
+        if (min < _cities[u].x - _cities[current_city].x) {
+          break;
+        } else {
+          double alt = Eucledian_distance(_cities[u], _cities[current_city]);
+          if ((visited.count(u) == 0 && alt <= min)) {
+            min = alt;
+            next_city = u;
+          }
+        }        
       }
 
       visited.insert(next_city);     
@@ -99,7 +106,7 @@ public:
     }
 
     // 3. Once every city has been visited exactly once, return to the first city to complete the tour.
-    return std::floor(sum + _dist[current_city][0]);
+    return std::floor(sum + Eucledian_distance(_cities[starting_city], _cities[current_city]));
   }
 };
 
@@ -114,13 +121,13 @@ int main(int argc, char *argv[]) {
       fs.open(argv[1]);
       int node_size;
       fs >> node_size;
-      vector<Coordinate<double>> nodes(node_size, Coordinate<double>());
+      vector<City<double>> nodes(node_size, City<double>());
       int z;
       double x, y;
 
       for (int line = 0; line < node_size; ++line) {
         fs >> z >> x >> y;
-        Coordinate<double> temp(x, y);
+        City<double> temp(x, y, z);
         nodes[line] = temp;
       }
 
