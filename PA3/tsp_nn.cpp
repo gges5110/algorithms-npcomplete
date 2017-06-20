@@ -1,4 +1,4 @@
-/*
+﻿/*
 In this assignment we will revisit an old friend, the traveling salesman problem (TSP). This week you will implement a
 heuristic for the TSP, rather than an exact algorithm, and as a result will be able to handle much larger problem sizes.
 Here is a data file describing a TSP instance (original source: http://www.math.uwaterloo.ca/tsp/world/bm33708.tsp).
@@ -129,7 +129,7 @@ int main(int argc, char *argv[]) {
       }
 
       TSP tsp(nodes);
-      cout << tsp.minCost() << endl;;
+      cout << int(tsp.minCost()) << endl;;
 
       fs.close();
     } catch (ifstream::failure& e) {
