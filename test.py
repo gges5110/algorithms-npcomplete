@@ -27,7 +27,7 @@ def main():
         print ("Please provide the PA# you want to test as an argument.")
         sys.exit(0)
     else:
-        module = "PA" + str(sys.argv[1])
+        module = str(sys.argv[1])
 
     # print (module)
     # Get the file list in test directory
